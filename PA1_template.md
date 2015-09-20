@@ -1,9 +1,4 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 
 ## Loading and preprocessing the data  
@@ -14,62 +9,63 @@ output:
 
 Firstly I load (and if neccessary install) required R-code packages
 
-```{r echo=T, tidy=T, results="hide"}
-        (if ("knitr" %in% installed.packages()) {
-        library(knitr)
-        opts_chunk$set(echo = TRUE) 
-        }
-        else {
-        install.packages("knitr")
-        library(knitr)
-        opts_chunk$set(echo = TRUE)
+
+```r
+(if ("knitr" %in% installed.packages()) {
+    library(knitr)
+    opts_chunk$set(echo = TRUE)
+} else {
+    install.packages("knitr")
+    library(knitr)
+    opts_chunk$set(echo = TRUE)
 })
-  
+
 (if ("ggplot2" %in% installed.packages()) {
-        library(ggplot2)
-        }
-        else {
-        install.packages("ggplot2")
-        library(ggplot2)
+    library(ggplot2)
+} else {
+    install.packages("ggplot2")
+    library(ggplot2)
 })
 
 (if ("reshape2" %in% installed.packages()) {
-        library(reshape2)
-        }
-        else {
-        install.packages("reshape2")
-        library(reshape2)
+    library(reshape2)
+} else {
+    install.packages("reshape2")
+    library(reshape2)
 })
 
 (if ("lattice" %in% installed.packages()) {
-        library(lattice)
-        }
-        else {
-        install.packages("lattice")
-        library(lattice)
+    library(lattice)
+} else {
+    install.packages("lattice")
+    library(lattice)
 })
-```  
+```
 
 Then I download, unzip and assign the dataset if the data is not found  
 
-```{r echo=T, tidy=T}
+
+```r
 if (!"ActivityData" %in% ls()) {
-        if (!file.exists("activity.csv")) {
-                url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
-                download.file(url, destfile = "ActivityData.zip", method = "curl")
-                unzip("ActivityData.zip", "activity.csv")
-                ActivityData <- read.csv("activity.csv")
-        }
-        else {
-                ActivityData <- read.csv("activity.csv", header = T, sep = ',', 
-                                         colClasses = c("numeric", "character", "integer"))
-        }
+    if (!file.exists("activity.csv")) {
+        url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+        download.file(url, destfile = "ActivityData.zip", method = "curl")
+        unzip("ActivityData.zip", "activity.csv")
+        ActivityData <- read.csv("activity.csv")
+    } else {
+        ActivityData <- read.csv("activity.csv", header = T, sep = ",", colClasses = c("numeric", 
+            "character", "integer"))
+    }
 }
 ```
   
 This is the structure of the data, and it looks like it is ready for our next task:  
-```{r echo=F}
-str(ActivityData)
+
+```
+## 'data.frame':	17568 obs. of  3 variables:
+##  $ steps   : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : chr  "2012-10-01" "2012-10-01" "2012-10-01" "2012-10-01" ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
 ```
   
   
@@ -84,31 +80,45 @@ str(ActivityData)
   
   First I aggregate steps by date, and assign the grouped sums to "stepsPerDay"
 
-```{r echo=T}
+
+```r
 stepsPerDay <- aggregate(steps ~ date, data=ActivityData, FUN=sum)
-```  
+```
   
 2. Histogram (each column represents a group defined by a quantitative variable) of steps per date  
   
-```{r echo=T, fig.show="asis"}
+
+```r
 ggplot(stepsPerDay, aes(x=steps, fill=..x..)) +
   geom_histogram(binwidth=1000) +
   scale_fill_continuous(low="#F27314", high="#771C19", guide=F) +
   labs(title = "Steps per day", x = "Steps per day", y = "Frequency")
-```  
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-5-1.png) 
   
 3. Mean and median of total number of steps taken per day  
   
   Mean:  
-```{r echo=T}
+
+```r
 mean(stepsPerDay$steps)
+```
+
+```
+## [1] 10766.19
 ```
 
 Median:   
   
-```{r echo=T}
+
+```r
 median(stepsPerDay$steps)
-```  
+```
+
+```
+## [1] 10765
+```
 
 ## What is the average daily activity pattern?
 
@@ -117,23 +127,32 @@ median(stepsPerDay$steps)
 
 1. A time series plot of the average number of staps taken in the various 5-min intervals:  
   
-```{r echo=T, fig.show="asis"}
+
+```r
 stepsPerInterval <- aggregate(steps ~ interval, data=ActivityData, FUN=mean)
 plot(stepsPerInterval, type="l")
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-8-1.png) 
+
 2. Interval with the highest average number of steps?  
 
-```{r echo=T}
+
+```r
 maxInterval <- stepsPerInterval$interval[which.max(stepsPerInterval$steps)]
 maxInterval
-```  
+```
 
-```{r echo=T}
+```
+## [1] 835
+```
+
+
+```r
 HrClock <- maxInterval%/%60
 minClock <- maxInterval%%60
-```  
-If the intervals begin at 00:05 AM the time of day with the highest average activety would be `r HrClock`:`r minClock`.  
+```
+If the intervals begin at 00:05 AM the time of day with the highest average activety would be 13:55.  
   
   
 ## Imputing missing values  
@@ -148,53 +167,101 @@ Note that there are a number of days/intervals where there are missing values (c
   
 1. Total number of missing values in the dataset:  
   
-```{r echo=T}
+
+```r
 sum(is.na(ActivityData$steps))  
+```
+
+```
+## [1] 2304
 ```
   
 2. & 3. creating a new dataset where the missing values are replaced with the interval averages:  
-```{r echo=T}
+
+```r
 ActivityData2 <- ActivityData
 nas <- is.na(ActivityData2$steps)
 intervalAvg <- tapply(ActivityData2$steps, ActivityData2$interval, mean, na.rm=T, simplify=T)
 ActivityData2$steps[nas] <- intervalAvg[as.character(ActivityData2$interval[nas])]
-```  
+```
   
 Checking that the missing values were replaced correctly.  
   
-```{r echo=T}
+
+```r
 head(ActivityData$steps[nas])
+```
+
+```
+## [1] NA NA NA NA NA NA
+```
+
+```r
 head(tapply(ActivityData2$steps, ActivityData2$interval, mean, na.rm=T, simplify=T))
+```
+
+```
+##         0         5        10        15        20        25 
+## 1.7169811 0.3396226 0.1320755 0.1509434 0.0754717 2.0943396
+```
+
+```r
 head(tapply(ActivityData2$steps[nas], ActivityData2$interval[nas], mean, na.rm=T, simplify=T))
+```
+
+```
+##         0         5        10        15        20        25 
+## 1.7169811 0.3396226 0.1320755 0.1509434 0.0754717 2.0943396
+```
+
+```r
 sum(is.na(ActivityData2$steps))
-```  
+```
+
+```
+## [1] 0
+```
   
 4. Analyzing the data with replaced nans:
 
 Histogram of steps per date:  
-```{r echo=T}
-stepsPerDay2 <- aggregate(steps ~ date, data=ActivityData2, FUN=sum)
-```  
 
-```{r echo=T, fig.show="asis"}
+```r
+stepsPerDay2 <- aggregate(steps ~ date, data=ActivityData2, FUN=sum)
+```
+
+
+```r
 ggplot(stepsPerDay2, aes(x=steps, fill=..x..)) +
   geom_histogram(binwidth=1000) +
   scale_fill_continuous(low="#F27314", high="#771C19", guide=F) +
   labs(title = "Steps per day", x = "Steps per day", y = "Frequency")
-```  
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-15-1.png) 
   
 3. Mean and median of total number of steps taken per day  
   
   Mean:  
-```{r echo=T}
+
+```r
 mean(stepsPerDay2$steps)
+```
+
+```
+## [1] 10766.19
 ```
 
 Median:   
   
-```{r echo=T}
+
+```r
 median(stepsPerDay2$steps)
-```  
+```
+
+```
+## [1] 10766.19
+```
   
 The mean and median are now the same. The manipulation of the date to replace the missing values affected the outcome significantly.  
  
@@ -209,7 +276,8 @@ For this part the weekdays() function may be of some help here. Use the dataset 
   
 1. Creating the two-level factor variable:  
 
-```{r}
+
+```r
 weekend <- function(date) {
 	if(weekdays(as.Date(date)) %in% c("Saturday", "Sunday")) {
 		day <- "Weekend"
@@ -218,16 +286,28 @@ weekend <- function(date) {
 	}
 }
 ActivityData2$weekend <- as.factor(sapply(ActivityData2$date, weekend))
-```  
+```
 
 A look at the first few rows of the dataset with the new data:  
-```{r echo=T}
+
+```r
 head(ActivityData2)
-```  
+```
+
+```
+##       steps       date interval weekend
+## 1 1.7169811 2012-10-01        0 Weekday
+## 2 0.3396226 2012-10-01        5 Weekday
+## 3 0.1320755 2012-10-01       10 Weekday
+## 4 0.1509434 2012-10-01       15 Weekday
+## 5 0.0754717 2012-10-01       20 Weekday
+## 6 2.0943396 2012-10-01       25 Weekday
+```
   
 2. 
 
-```{r echo=T, fig.show="asis"}
+
+```r
 library(reshape2)
 
 meltedData <- melt(ActivityData2, measure.vars="steps")
@@ -244,3 +324,5 @@ xyplot(steps~interval|weekend,
 	layout=c(1,2)
 )
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-20-1.png) 
